@@ -1,0 +1,40 @@
+#!/usr/bin/env node
+
+const UserAgent = require('user-agents');
+
+var defs = {
+    'mobile': {'aliases': ['mob'], cat: 'deviceCategory'},
+
+}
+
+var filters = {};
+var argv = require('yargs')
+  .usage('./$0 - get a random user string')
+  .option('mobile', {
+    alias: 'mob',
+    describe: "Use a mobile browser type",
+    demandOption: false
+  }) 
+  .option('desktop', {
+    alias: 'desk',
+    describe: "Use a desktop browser type",
+    demandOption: false,
+  })
+  .option('tablet', {
+    alias: 'tab',
+    describe: "Use a tablet browser type",
+    demandOption: false,
+  })
+ 
+  .conflicts('mobile', ['desktop']) 
+  .help('help')
+  .argv
+
+if (argv['mobile'] === true){
+    filters['deviceCategory'] = 'mobile'
+}
+
+console.log(argv)
+console.log(filters)
+const userAgent = new UserAgent(filters);
+console.log(userAgent.toString());
