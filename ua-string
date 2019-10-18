@@ -1,40 +1,89 @@
 #!/usr/bin/env node
 
+"use strict";
 const UserAgent = require('user-agents');
 
 var defs = {
     'mobile': {'aliases': ['mob'], cat: 'deviceCategory'},
+    'desktop': {'aliases': ['desk'], cat: 'deviceCategory'},
+    'tablet': {'aliases': ['tab'], cat: 'deviceCategory'},
+    'Firefox': {'aliases': ['firefox', 'ff'], cat: 'appName'},
+    'Opera': {'aliases': ['opera'], cat: 'appName'},
+    // Chrome, which we have to define more specifically since everyone has in agent
+    'Google Inc.': {'aliases': ['Chrome', 'chrome'], cat: 'vendor', regex: 'Chrome'},
+    'Win32': {'aliases': ['win', 'Win', 'windows'], cat: 'platform'},
+    'MacIntel': {'aliases': ['osx', 'Mac', 'MacOS'], cat: 'platform'},
+    'Linux x86_64': {'aliases': ['linux'], cat: 'platform'},
+}
+var regex = null;
 
+var argv_defs = {};
+
+for (var def of Object.keys(defs)){
+    var desc = '';
+    console.log(def);
+
+    if (defs[def].cat === 'deviceCategory'){
+        desc = "Use a ${def} device type"
+    }
+    else if (defs[def].cat === 'appName'){
+        desc = "Use a ${def} browser type"
+    }
+
+    argv_defs[def] = {
+        alias: defs[def].aliases,
+        describe: desc,
+        demandOption: false
+    }
+}
+
+argv_defs['regex'] = {
+    alias: 're',
+    describe: 'A regex that UA must match; note may override other filters',
+    demandOption: false
 }
 
 var filters = {};
 var argv = require('yargs')
   .usage('./$0 - get a random user string')
-  .option('mobile', {
-    alias: 'mob',
-    describe: "Use a mobile browser type",
-    demandOption: false
-  }) 
-  .option('desktop', {
-    alias: 'desk',
-    describe: "Use a desktop browser type",
-    demandOption: false,
-  })
-  .option('tablet', {
-    alias: 'tab',
-    describe: "Use a tablet browser type",
-    demandOption: false,
-  })
- 
-  .conflicts('mobile', ['desktop']) 
+  .options(argv_defs)
+  .conflicts('mobile', ['desktop'])
   .help('help')
-  .argv
+  .argv;
 
-if (argv['mobile'] === true){
-    filters['deviceCategory'] = 'mobile'
+console.log(argv);
+console.log()
+for (var arg of Object.keys(argv)){
+    if (defs[arg]){
+        console.log("Setting arg for ", arg)
+        filters[defs[arg].cat] = arg
+
+        if (defs[arg][regex]){
+            regex = defs[arg][regex];
+        }
+    }
 }
 
-console.log(argv)
+if (argv['regex']){
+    regex = argv['regex'];
+}
+
+// console.log(argv)
+console.log("filters")
 console.log(filters)
-const userAgent = new UserAgent(filters);
+var userAgent;
+try {
+    if (regex){
+        let re = new RegExp(regex);
+        userAgent = new UserAgent(re, filters);
+    }
+    else{
+        userAgent = new UserAgent(filters);
+    }
+}
+catch(e){
+    console.error("Couldn't find a UA meeting all of your filters, try adjusting them")
+    process.exit(1); 
+}
+console.log(userAgent)
 console.log(userAgent.toString());
